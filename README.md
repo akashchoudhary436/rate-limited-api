@@ -4,33 +4,81 @@ This repository contains a Node.js API with a POST route for handling tasks subm
 
 ## Configuration
 
-1. Install Node.js and npm if they are not already installed.
-2. Clone this repository to your local machine.
-3. Navigate to the project directory.
-4. Install the required dependencies by running the following command:
+1. **Install Node.js and npm** if they are not already installed. You can download them from [Node.js Official Website](https://nodejs.org/).
+
+2. **Clone this repository** to your local machine using the following command:
+   ```bash
+   git clone https://github.com/akashchoudhary436/rate-limited-api.git
+   ```
+
+3. **Navigate to the project directory:**
+   ```bash
+   cd rate-limited-api
+   ```
+
+4. **Install the required dependencies by running the following command:**
    ```bash
    npm install
    ```
-5. Set up a Redis server and ensure it is running. You can use a local Redis server or a cloud-based Redis service.
 
 ## Running the API
 
-1. Start the API server by running the following command:
+1. **Start the API server by running the following command:**
    ```bash
    npm start
    ```
-2. The API server will start on the default port (e.g., 3000). You can change the port by setting the `PORT` environment variable.
 
 ## Testing the Rate-Limiting Feature
 
-1. Use a tool like Postman or curl to send POST requests to the API endpoint (e.g., `http://localhost:3000/tasks`).
-2. Include a unique user ID in the request body to test the rate-limiting feature.
-3. Send multiple requests in quick succession to observe the rate-limiting behavior.
-4. Verify that the API enforces the rate limit of 1 task per second and a maximum of 20 tasks per minute per user.
+### Using Postman
+
+1. **Open Postman.**
+
+2. **Create a new POST request to:**
+   ```
+   http://localhost:3000/tasks
+   ```
+
+3. **Set the request body to JSON format with a unique `user_id` and `task`. Example:**
+   ```json
+   {
+     "user_id": "user123",
+     "task": "Sample Task"
+   }
+   ```
+
+4. **Send the request multiple times in quick succession (e.g., 25 times) to observe the rate-limiting behavior.**
+
+### Expected Behavior
+
+- **For the first 20 requests:**
+  Each request with a unique user ID should return a response indicating that the task was added to the queue. Example response:
+  ```json
+  {
+    "message": "Task added to queue"
+  }
+  ```
+
+- **For the 21st request:**
+  You should receive a 429 Too Many Requests response indicating that the rate limit has been exceeded. Example response:
+  ```json
+  {
+    "error": "Rate limit exceeded"
+  }
+  ```
 
 ## Verifying the Log Output
 
-1. Check the log file (e.g., `logs/task-completion.log`) to verify that task completion details are being logged correctly.
-2. Ensure that the log entries include the user ID, timestamp, and status of each completed task.
-3. Use the log output for tracking and debugging purposes.
-\
+1. **Check the log file (e.g., `logs/task-completion.log`) to verify that task completion details are being logged correctly.**
+
+2. **Ensure that the log entries include the user ID, timestamp, and status of each completed task. Example log entry:**
+   ```json
+   {
+     "user_id": "user123",
+     "timestamp": "2023-10-26T12:34:56.789Z",
+     "status": "task completed"
+   }
+   ```
+
+3. **Use the log output for tracking and debugging purposes.** Monitor this log file to review task processing results and any potential issues.
+nitoring, and alerting based on log entries.
