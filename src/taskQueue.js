@@ -1,19 +1,22 @@
 // src/taskQueue.js
 
-const Bull = require('bull');
 const task = require('./taskFunction'); // Ensure this path is correct
 const logger = require('./logger');
 
-const taskQueue = new Bull('taskQueue', {
-  redis: {
-    host: '127.0.0.1',
-    port: 6379,
-  },
-});
+const taskQueue = []; // In-memory task queue
 
-taskQueue.process(async (job) => {
-  const { userId } = job.data;
-  await task(userId); // Call the task function with userId
-});
+function add(taskData) {
+  taskQueue.push(taskData);
+  processTaskQueue(); // Start processing tasks immediately
+}
 
-module.exports = taskQueue;
+async function processTaskQueue() {
+  while (taskQueue.length > 0) {
+    const { userId } = taskQueue.shift(); // Get the first task in the queue
+    await task(userId); // Call the task function with userId
+  }
+}
+
+module.exports = {
+  add,
+};
