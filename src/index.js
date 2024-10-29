@@ -1,54 +1,46 @@
+const cluster = require('cluster');
+const os = require('os');
 const express = require('express');
 const bodyParser = require('body-parser');
 const redis = require('redis');
-const Bull = require('bull');
-const winston = require('winston');
 const rateLimiter = require('./rateLimiter');
 const taskQueue = require('./taskQueue');
 const logger = require('./logger');
 
-const app = express();
-app.use(bodyParser.json());
+if (cluster.isMaster) {
+  const numCPUs = 2; // Number of replicas
+  console.log(`Master ${process.pid} is running`);
 
-const redisClient = redis.createClient();
-redisClient.on('error', (err) => {
-  console.error('Redis error:', err);
-});
-
-const taskQueue = new Bull('taskQueue', {
-  redis: {
-    host: '127.0.0.1',
-    port: 6379,
-  },
-});
-
-app.post('/tasks', async (req, res) => {
-  const userId = req.body.userId;
-
-  try {
-    const isAllowed = await rateLimiter.checkRateLimit(userId);
-    if (!isAllowed) {
-      return res.status(429).json({ error: 'Rate limit exceeded' });
-    }
-
-    await taskQueue.add({ userId, task: req.body.task });
-    res.status(200).json({ message: 'Task added to queue' });
-  } catch (error) {
-    console.error('Error adding task to queue:', error);
-    res.status(500).json({ error: 'Internal server error' });
+  for (let i = 0; i < numCPUs; i++) {
+    cluster.fork(); // Fork worker processes
   }
-});
 
-taskQueue.process(async (job) => {
-  const { userId, task } = job.data;
+  cluster.on('exit', (worker, code, signal) => {
+    console.log(`Worker ${worker.process.pid} died`);
+  });
+} else {
+  const app = express();
+  app.use(bodyParser.json());
 
-  // Simulate task processing
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  app.post('/tasks', async (req, res) => {
+    const userId = req.body.user_id;
 
-  logger.info(`Task completed for user ${userId} at ${new Date().toISOString()}`);
-});
+    try {
+      const isAllowed = await rateLimiter.checkRateLimit(userId);
+      if (!isAllowed) {
+        return res.status(429).json({ error: 'Rate limit exceeded' });
+      }
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+      await taskQueue.add({ userId, task: req.body.task });
+      res.status(200).json({ message: 'Task added to queue' });
+    } catch (error) {
+      console.error('Error adding task to queue:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`Worker ${process.pid} started`);
+  });
+}

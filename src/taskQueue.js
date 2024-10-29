@@ -1,4 +1,7 @@
+// src/taskQueue.js
+
 const Bull = require('bull');
+const task = require('./taskFunction'); // Ensure this path is correct
 const logger = require('./logger');
 
 const taskQueue = new Bull('taskQueue', {
@@ -9,12 +12,8 @@ const taskQueue = new Bull('taskQueue', {
 });
 
 taskQueue.process(async (job) => {
-  const { userId, task } = job.data;
-
-  // Simulate task processing
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-
-  logger.info(`Task completed for user ${userId} at ${new Date().toISOString()}`);
+  const { userId } = job.data;
+  await task(userId); // Call the task function with userId
 });
 
 module.exports = taskQueue;
