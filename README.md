@@ -1,2 +1,1 @@
-# rate-limited-api
-A repository for a rate-limited API with task queue and logging
+This repository is empty. Any task executed on it should be considered a new capability and needs to be created.
